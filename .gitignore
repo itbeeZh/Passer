@@ -41,7 +41,7 @@ out
  
 
 bin/
-
+target
 gen/
 
 local.properties
