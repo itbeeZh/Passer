@@ -1,12 +1,16 @@
 package com.itbeezh.passer.common.utils;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import sun.nio.cs.StandardCharsets;
+import org.jdom.Document;
+import org.jdom.Element;
+import org.jdom.input.SAXBuilder;
+import org.xml.sax.InputSource;
 
-import java.util.Iterator;
+import java.io.StringReader;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 /**
  * Created by szwb004 on 2017-08-02.
@@ -63,5 +67,53 @@ public class JsonUtils {
 
         }
         return buffer.toString();
+    }
+
+    public static  String xmlToJson(String xmlStr){
+        SAXBuilder sbder = new SAXBuilder();
+        Map<String, Object> map = new HashMap<String, Object>();
+        Document document;
+        try {
+            StringReader reader = new StringReader(xmlStr);
+            InputSource ins = new InputSource(reader);
+            document = sbder.build(ins);
+            //获取根节点
+            Element el =  document.getRootElement();
+            List<Element> eList =  el.getChildren();
+            Map<String, Object> rootMap = new HashMap<String, Object>();
+            //得到递归组装的map
+            rootMap = xmlToMap(eList,rootMap);
+            map.put(el.getName(), rootMap);
+            return JSON.parseObject(JSON.toJSONString(map)).toString();
+        } catch (Exception e) {
+            return JSON.parseObject("{}").toString();
+        }
+    }
+
+    private static Map<String, Object> xmlToMap(List<Element> eList,Map<String, Object> map){
+        for (Element e : eList) {
+            Map<String, Object> eMap = new HashMap<String, Object>();
+            List<Element> elementList = e.getChildren();
+            if(elementList!=null&&elementList.size()>0){
+                eMap = xmlToMap(elementList,eMap);
+                Object obj = map.get(e.getName());
+                if(obj!=null){
+                    List<Object> olist = new ArrayList<Object>();
+                    if(obj.getClass().getName().equals("java.util.HashMap")){
+                        olist.add(obj);
+                        olist.add(eMap);
+                    }else if(obj.getClass().getName().equals("java.util.ArrayList")){
+                        olist = (List<Object>)obj;
+                        olist.add(eMap);
+                    }
+                    map.put(e.getName(), olist);
+                }else{
+                    map.put(e.getName(), eMap);
+                }
+            }else{
+                map.put(e.getName(), e.getValue());
+            }
+        }
+        return map;
     }
 }
